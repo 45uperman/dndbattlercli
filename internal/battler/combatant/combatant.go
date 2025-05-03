@@ -1,4 +1,4 @@
-package battle
+package combatant
 
 import (
 	"fmt"
@@ -34,6 +34,7 @@ type Combatant struct {
 
 func (c Combatant) Display() {
 	sep := "-------------------------------------------------------"
+	fmt.Println("=======================================================")
 	fmt.Println(c.StatBlock.Name)
 	fmt.Println(sep)
 	for statName, statValue := range c.StatBlock.Stats {
@@ -90,6 +91,7 @@ func (c Combatant) Display() {
 
 	printIfPopulated(c.StatBlock.Languages.Speaks, "-Speaks", " ")
 	printIfPopulated(c.StatBlock.Languages.Understands, "-Understands", " ")
+	fmt.Println("=======================================================")
 
 }
 
