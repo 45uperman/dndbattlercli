@@ -1,0 +1,164 @@
+{
+    "combatant": {
+      "name": "caterpie",
+      "stats": {
+        "ac": 10,
+        "hp": 22,
+        "speed": 30
+      },
+      "abilities": {
+        "str": 10,
+        "con": 10,
+        "dex": 10,
+        "int": 10,
+        "wis": 10,
+        "cha": 10
+      },
+      "saves": {
+        "str": false,
+        "con": false,
+        "dex": false,
+        "int": false,
+        "wis": false,
+        "cha": false
+      },
+      "skills": {
+        "acrobatics": {
+          "proficiency": false,
+          "expertise": false
+        },
+        "animal_handling": {
+          "proficiency": false,
+          "expertise": false
+        },
+        "arcana": {
+          "proficiency": false,
+          "expertise": false
+        },
+        "athletics": {
+          "proficiency": false,
+          "expertise": false
+        },
+        "deception": {
+          "proficiency": false,
+          "expertise": false
+        },
+        "history": {
+          "proficiency": false,
+          "expertise": false
+        },
+        "insight": {
+          "proficiency": false,
+          "expertise": false
+        },
+        "intimidation": {
+          "proficiency": false,
+          "expertise": false
+        },
+        "investigiation": {
+          "proficiency": false,
+          "expertise": false
+        },
+        "medicine": {
+          "proficiency": false,
+          "expertise": false
+        },
+        "nature": {
+          "proficiency": false,
+          "expertise": false
+        },
+        "perception": {
+          "proficiency": false,
+          "expertise": false
+        },
+        "performance": {
+          "proficiency": false,
+          "expertise": false
+        },
+        "persuasion": {
+          "proficiency": false,
+          "expertise": false
+        },
+        "religion": {
+          "proficiency": false,
+          "expertise": false
+        },
+        "sleight_of_hand": {
+          "proficiency": false,
+          "expertise": false
+        },
+        "stealth": {
+          "proficiency": false,
+          "expertise": false
+        },
+        "survival": {
+          "proficiency": false,
+          "expertise": false
+        }
+      },
+      "vulnerabilities": {
+        "fire": true,
+        "rock": true,
+        "flying": true
+      },
+      "resistances": {
+        "bug": true
+      },
+      "immunities": {
+        "none :(": true
+      },
+      "condition_immunities": {
+        "blinded": false,
+        "charmed": false,
+        "deafened": false,
+        "exhaustion": false,
+        "frightened": false,
+        "incapacitated": false,
+        "invisible": false,
+        "paralyzed": false,
+        "petrified": false,
+        "poisoned": false,
+        "prone": false,
+        "restrained": false,
+        "stunned": false,
+        "unconscious": false
+      },
+      "senses": {
+        "blindsight": 0,
+        "darkvision": 0,
+        "tremorsense": 0,
+        "truesight": 0
+      },
+      "languages": {
+        "speaks": {
+          "all": false,
+          "abyssal": false,
+          "aquan": false,
+          "auran": false,
+          "celestial": false,
+          "common": false,
+          "deep_speech": false,
+          "draconic": false,
+          "dwarvish": false,
+          "elvish": false,
+          "giant": false,
+          "gnomish": false,
+          "goblin": false,
+          "halfling": false,
+          "ignan": false,
+          "infernal": false,
+          "orc": false,
+          "primordial": false,
+          "sylvan": false,
+          "terran": false,
+          "undercommon": false,
+          "other": [
+            "caterpiean"
+          ]
+        },
+        "understands": {
+          "caterpiean but he shy :(": true
+        }
+      }
+    }
+  }
