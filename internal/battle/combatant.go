@@ -1,28 +1,39 @@
 package battle
 
-import "fmt"
+import (
+	"fmt"
+)
 
 type Combatant struct {
 	StatBlock struct {
 		Name      string
-		Stats     map[string]int  `json:"stats"`
-		Abilities map[string]int  `json:"abilities"`
-		Saves     map[string]bool `json:"saves"`
-		Skills    map[string]struct {
-			Proficiency bool `json:"proficiency"`
-			Expertise   bool `json:"expertise"`
+		Stats     map[string]int `json:"stats"`
+		Abilities struct {
+			STR int `json:"str"`
+			DEX int `json:"dex"`
+			CON int `json:"con"`
+			INT int `json:"int"`
+			WIS int `json:"wis"`
+			CHA int `json:"cha"`
+		} `json:"abilities"`
+		Saves  []string `json:"saves"`
+		Skills map[string]struct {
+			Expertise bool `json:"expertise"`
 		} `json:"skills"`
-		Vulnerabilities     map[string]any            `json:"vulnerabilities"`
-		Resistances         map[string]any            `json:"resistances"`
-		Immunities          map[string]any            `json:"immunities"`
-		ConditionImmunities map[string]bool           `json:"condition_immunities"`
-		Senses              map[string]int            `json:"senses"`
-		Languages           map[string]map[string]any `json:"languages"`
-	} `json:"combatant"`
+		Vulnerabilities     []string       `json:"vulnerabilities"`
+		Resistances         []string       `json:"resistances"`
+		Immunities          []string       `json:"immunities"`
+		ConditionImmunities []string       `json:"condition_immunities"`
+		Senses              map[string]int `json:"senses"`
+		Languages           struct {
+			Speaks      []string
+			Understands []string
+		} `json:"languages"`
+	} `json:"statblock"`
 }
 
 func (c Combatant) Display() {
-	sep := "---------------------------------------------------------------"
+	sep := "-------------------------------------------------------"
 	fmt.Println(c.StatBlock.Name)
 	fmt.Println(sep)
 	for statName, statValue := range c.StatBlock.Stats {
@@ -30,76 +41,62 @@ func (c Combatant) Display() {
 	}
 	fmt.Println(sep)
 
-	fmt.Println("Vulnerabilities:")
-	err := prettyPrintAbstracts(c.StatBlock.Vulnerabilities)
-	if err != nil {
-		fmt.Printf("\nPrinting interrupted by error: %s", err)
-		return
+	fmt.Print("   STR      DEX      CON      INT      WIS      CHA   \n")
+	abilityScores := []int{
+		c.StatBlock.Abilities.STR,
+		c.StatBlock.Abilities.DEX,
+		c.StatBlock.Abilities.CON,
+		c.StatBlock.Abilities.INT,
+		c.StatBlock.Abilities.WIS,
+		c.StatBlock.Abilities.CHA,
 	}
-
-	fmt.Println("Resistances:")
-	err = prettyPrintAbstracts(c.StatBlock.Resistances)
-	if err != nil {
-		fmt.Printf("\nPrinting interrupted by error: %s", err)
-		return
+	for _, score := range abilityScores {
+		var scoreStr string
+		if score >= 10 {
+			scoreStr = fmt.Sprintf("  %d +%d  ", score, (score-10)/2)
+		} else {
+			scoreStr = fmt.Sprintf("  %d  %d  ", score, (score-10)/2)
+		}
+		fmt.Print(scoreStr)
 	}
-
-	fmt.Println("Immunities:")
-	err = prettyPrintAbstracts(c.StatBlock.Immunities)
-	if err != nil {
-		fmt.Printf("\nPrinting interrupted by error: %s", err)
-		return
-	}
+	fmt.Printf("\n")
 
 	fmt.Println(sep)
-	fmt.Println("Condition immunities:")
+
+	printIfPopulated(c.StatBlock.Vulnerabilities, "Vulnerabilities", "")
+
+	printIfPopulated(c.StatBlock.Resistances, "Resitances", "")
+
+	printIfPopulated(c.StatBlock.Immunities, "Immunities", "")
+
+	fmt.Println(sep)
+
+	printIfPopulated(c.StatBlock.ConditionImmunities, "Condition immunities", "")
+
+	fmt.Println(sep)
 
 	i := 0
-	for condition, immune := range c.StatBlock.ConditionImmunities {
-		if immune {
-			prettyPrintListItem(&i, condition)
-		}
-	}
-
-	fmt.Println(sep)
-	fmt.Println("Senses:")
-
-	i = 0
+	fmt.Print("Senses: ")
 	for sense, distance := range c.StatBlock.Senses {
 		if distance > 0 {
-			prettyPrintListItem(&i, sense)
+			prettyPrintListItem(fmt.Sprintf("%s %dft", sense, distance), "", &i)
 		}
 	}
+	fmt.Printf("\n")
 
 	fmt.Println(sep)
+
 	fmt.Println("Languages:")
 
-	i = 0
-	for k, v := range c.StatBlock.Languages {
-		switch k {
-		case "speaks":
-			fmt.Println("-Speaks:")
-			err := prettyPrintAbstracts(v)
-			if err != nil {
-				fmt.Printf("\nPrinting interrupted by error: %s", err)
-				return
-			}
-		case "understands":
-			fmt.Println("-Understands:")
-			err := prettyPrintAbstracts(v)
-			if err != nil {
-				fmt.Printf("\nPrinting interrupted by error: %s", err)
-				return
-			}
-		}
-	}
+	printIfPopulated(c.StatBlock.Languages.Speaks, "-Speaks", " ")
+	printIfPopulated(c.StatBlock.Languages.Understands, "-Understands", " ")
 
 }
 
-func prettyPrintListItem(i *int, item string) {
+func prettyPrintListItem(item, indent string, i *int) {
 	switch *i {
 	case 0:
-		fmt.Printf("  ")
+		fmt.Print(indent)
 	case 1:
 		fallthrough
 	case 2:
@@ -112,26 +109,17 @@ func prettyPrintListItem(i *int, item string) {
 	*i++
 }
 
-func prettyPrintAbstracts(m map[string]any) error {
-	i := 0
-	for name, value := range m {
-		switch v := value.(type) {
-		case string:
-			prettyPrintListItem(&i, name)
-		case bool:
-			if v {
-				prettyPrintListItem(&i, name)
-			}
-		case []any:
-			for _, name := range v {
-				prettyPrintListItem(&i, name.(string))
-			}
-		default:
-			return fmt.Errorf("prettyPrintAbstracts passed invalid object: %v", value)
-		}
+func prettyPrintList(li []string, itemIndent string, i *int) {
+	for _, item := range li {
+		prettyPrintListItem(item, itemIndent, i)
 	}
-
 	fmt.Printf("\n")
+}
 
-	return nil
+func printIfPopulated(li []string, name, itemIndent string) {
+	if len(li) != 0 {
+		i := 0
+		fmt.Printf("%s: ", name)
+		prettyPrintList(li, itemIndent, &i)
+	}
 }
