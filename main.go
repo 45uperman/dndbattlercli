@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"math/rand"
 	"os"
 	"strings"
 
@@ -52,12 +53,32 @@ func init() {
 			"dmg": {
 				name:        "dmg",
 				description: "Deals the provided amount of damage to the selected combatant",
-				callback:    commandDMG,
+				callback:    commandDmg,
 			},
 			"heal": {
 				name:        "heal",
 				description: "Heals the selected combatant by the provided amount of hp",
 				callback:    commandHeal,
+			},
+			"attack": {
+				name:        "attack",
+				description: "Compares the provided attack roll to the selected combatant's AC and displays the result",
+				callback:    commandAttack,
+			},
+			"roll": {
+				name:        "roll",
+				description: "Rolls the provided amount of dice of the provided denomination and displays the total",
+				callback:    commandRoll,
+			},
+			"advantage": {
+				name:        "advantage",
+				description: "Rolls the provided amount of dice of the provided denomination twice and displays the highest total",
+				callback:    commandAdvantage,
+			},
+			"disadvantage": {
+				name:        "disadvantage",
+				description: "Rolls the provided amount of dice of the provided denomination twice and displays the lowest total",
+				callback:    commandDisadvantage,
 			},
 		},
 		isRunning: true,
@@ -156,7 +177,7 @@ func commandSelect(cfg *config, params []string) error {
 	return nil
 }
 
-func commandDMG(cfg *config, params []string) error {
+func commandDmg(cfg *config, params []string) error {
 	if cfg.selection.StatBlock.Name == "" {
 		return fmt.Errorf("dmg requires a combatant to have already been selected using the select command")
 	}
@@ -167,7 +188,7 @@ func commandDMG(cfg *config, params []string) error {
 		return fmt.Errorf("dmg takes a whole number as an argument, not %s", params[0])
 	}
 
-	cfg.selection.TakeDMG(dmg)
+	cfg.selection.TakeDMG(dmg, params[1])
 
 	return nil
 }
@@ -180,10 +201,90 @@ func commandHeal(cfg *config, params []string) error {
 	var hp int
 	_, err := fmt.Sscanf(params[0], "%d", &hp)
 	if err != nil {
-		return fmt.Errorf("heal takes a whole number as an argument, not %s", params[0])
+		return fmt.Errorf("heal takes a whole number as an argument, not '%s'", params[0])
 	}
 
 	cfg.selection.HealHP(hp)
 
 	return nil
+}
+
+func commandAttack(cfg *config, params []string) error {
+	if cfg.selection.StatBlock.Name == "" {
+		return fmt.Errorf("attack requires a combatant to have already been selected using the select command")
+	}
+
+	var attackRoll int
+	_, err := fmt.Sscanf(params[0], "%d", &attackRoll)
+	if err != nil {
+		return fmt.Errorf("attack takes a whole number as an argument, not '%s'", params[0])
+	}
+
+	cfg.selection.Attack(attackRoll)
+
+	return nil
+}
+
+func commandRoll(cfg *config, params []string) error {
+	var amount int
+	var denomination int
+
+	_, err := fmt.Sscanf(params[0], "%dd%d", &amount, &denomination)
+	if err != nil {
+		_, err = fmt.Sscanf(params[0], "d%d", &denomination)
+		if err != nil {
+			return fmt.Errorf("roll takes a die expression as an argument, such as '8d6' or 'd20', not %s", params[0])
+		}
+		amount = 1
+	}
+
+	fmt.Println(roll(amount, denomination))
+
+	return nil
+}
+
+func commandAdvantage(cfg *config, params []string) error {
+	var amount int
+	var denomination int
+
+	_, err := fmt.Sscanf(params[0], "%dd%d", &amount, &denomination)
+	if err != nil {
+		_, err = fmt.Sscanf(params[0], "d%d", &denomination)
+		if err != nil {
+			return fmt.Errorf("advantage takes a die expression as an argument, such as '8d6' or 'd20', not %s", params[0])
+		}
+		amount = 1
+	}
+
+	fmt.Println(max(roll(amount, denomination), roll(amount, denomination)))
+
+	return nil
+
+}
+
+func commandDisadvantage(cfg *config, params []string) error {
+	var amount int
+	var denomination int
+
+	_, err := fmt.Sscanf(params[0], "%dd%d", &amount, &denomination)
+	if err != nil {
+		_, err = fmt.Sscanf(params[0], "d%d", &denomination)
+		if err != nil {
+			return fmt.Errorf("disadvantage takes a die expression as an argument, such as '8d6' or 'd20', not %s", params[0])
+		}
+		amount = 1
+	}
+
+	fmt.Println(min(roll(amount, denomination), roll(amount, denomination)))
+
+	return nil
+
+}
+
+func roll(amount, denomination int) int {
+	total := 0
+	for range amount {
+		total += (rand.Intn(denomination) + 1)
+	}
+	return total
 }

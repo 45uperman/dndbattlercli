@@ -1,6 +1,7 @@
 {
     "statblock": {
       "name": "cabby the caterpie",
+      "type": "pokemon (bug)",
       "ac": 7,
       "hp": {
         "max": 1,

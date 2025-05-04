@@ -1,6 +1,7 @@
 {
     "statblock": {
       "name": "blabby the blastoise",
+      "type": "pokemon (water)",
       "ac": 18,
       "hp": {
         "max": 138,
@@ -25,13 +26,14 @@
         }
       },
       "vulnerabilities": [
-        "rock",
-        "flying",
+        "grass",
         "electric"
       ],
       "resistances": [
         "water",
-        "fire"
+        "fire",
+        "ice",
+        "steel"
       ],
       "immunities": [
         "none :("

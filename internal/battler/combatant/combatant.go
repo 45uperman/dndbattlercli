@@ -2,12 +2,14 @@ package combatant
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 )
 
 type Combatant struct {
 	StatBlock struct {
 		Name      string         `json:"name"`
+		Type      string         `json:"type"`
 		HP        map[string]int `json:"hp"`
 		AC        int            `json:"ac"`
 		Speed     int            `json:"speed"`
@@ -35,21 +37,49 @@ type Combatant struct {
 	} `json:"statblock"`
 }
 
-func (c Combatant) TakeDMG(dmg int) {
+func (c Combatant) TakeDMG(dmg int, dmgType string) {
+	if c.StatBlock.HP["current"] <= 0 {
+		c.StatBlock.HP["current"] = 0
+		fmt.Printf("%s was already at 0 hit points!\n", c.StatBlock.Name)
+		return
+	}
+
+	if slices.Contains(c.StatBlock.Immunities, dmgType) {
+		fmt.Printf("%s is immune to %s!\n", c.StatBlock.Name, dmgType)
+		return
+	}
+	if slices.Contains(c.StatBlock.Vulnerabilities, dmgType) {
+		dmg *= 2
+		fmt.Printf("%s is vulnerable to %s!\n", c.StatBlock.Name, dmgType)
+	}
+	if slices.Contains(c.StatBlock.Resistances, dmgType) {
+		dmg /= 2
+		fmt.Printf("%s is resistant to %s!\n", c.StatBlock.Name, dmgType)
+	}
+
 	c.StatBlock.HP["current"] -= dmg
 	if c.StatBlock.HP["current"] <= 0 {
 		c.StatBlock.HP["current"] = 0
 		fmt.Printf("%s has dropped to 0 hit points!\n", c.StatBlock.Name)
+		return
 	}
 }
 
 func (c Combatant) HealHP(hp int) {
-	if c.StatBlock.HP["current"] == 0 {
+	if c.StatBlock.HP["current"] == 0 && hp > 0 {
 		fmt.Printf("%s is back above 0 hit points!\n", c.StatBlock.Name)
 	}
 	c.StatBlock.HP["current"] += hp
 	if c.StatBlock.HP["current"] > c.StatBlock.HP["max"] {
 		c.StatBlock.HP["current"] = c.StatBlock.HP["max"]
+	}
+}
+
+func (c Combatant) Attack(attackRoll int) {
+	if attackRoll >= c.StatBlock.AC {
+		fmt.Println("Hit!")
+	} else {
+		fmt.Println("Miss!")
 	}
 }
 
@@ -67,7 +97,7 @@ func (c Combatant) Display() {
 			fmt.Print(strings.ToUpper(word[:1]) + word[1:])
 		}
 	}
-	fmt.Printf("\n")
+	fmt.Printf(" | %s\n", c.StatBlock.Type)
 
 	fmt.Println(sep)
 
