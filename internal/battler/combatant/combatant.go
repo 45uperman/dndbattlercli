@@ -2,12 +2,15 @@ package combatant
 
 import (
 	"fmt"
+	"strings"
 )
 
 type Combatant struct {
 	StatBlock struct {
-		Name      string
-		Stats     map[string]int `json:"stats"`
+		Name      string         `json:"name"`
+		HP        map[string]int `json:"hp"`
+		AC        int            `json:"ac"`
+		Speed     int            `json:"speed"`
 		Abilities struct {
 			STR int `json:"str"`
 			DEX int `json:"dex"`
@@ -32,14 +35,46 @@ type Combatant struct {
 	} `json:"statblock"`
 }
 
+func (c Combatant) TakeDMG(dmg int) {
+	c.StatBlock.HP["current"] -= dmg
+	if c.StatBlock.HP["current"] <= 0 {
+		c.StatBlock.HP["current"] = 0
+		fmt.Printf("%s has dropped to 0 hit points!\n", c.StatBlock.Name)
+	}
+}
+
+func (c Combatant) HealHP(hp int) {
+	if c.StatBlock.HP["current"] == 0 {
+		fmt.Printf("%s is back above 0 hit points!\n", c.StatBlock.Name)
+	}
+	c.StatBlock.HP["current"] += hp
+	if c.StatBlock.HP["current"] > c.StatBlock.HP["max"] {
+		c.StatBlock.HP["current"] = c.StatBlock.HP["max"]
+	}
+}
+
 func (c Combatant) Display() {
 	sep := "-------------------------------------------------------"
 	fmt.Println("=======================================================")
-	fmt.Println(c.StatBlock.Name)
-	fmt.Println(sep)
-	for statName, statValue := range c.StatBlock.Stats {
-		fmt.Printf(" -%s: %d\n", statName, statValue)
+
+	trimmedText := strings.TrimSpace(c.StatBlock.Name)
+	words := strings.Split(trimmedText, " ")
+	for i, word := range words {
+		if strings.TrimSpace(word) != "" {
+			if i != 0 {
+				fmt.Print(" ")
+			}
+			fmt.Print(strings.ToUpper(word[:1]) + word[1:])
+		}
 	}
+	fmt.Printf("\n")
+
+	fmt.Println(sep)
+
+	fmt.Printf(" - HP: %d/%d\n", c.StatBlock.HP["current"], c.StatBlock.HP["max"])
+	fmt.Printf(" - AC: %d\n", c.StatBlock.AC)
+	fmt.Printf(" - Speed: %d\n", c.StatBlock.Speed)
+
 	fmt.Println(sep)
 
 	fmt.Print("   STR      DEX      CON      INT      WIS      CHA   \n")

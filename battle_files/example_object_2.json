@@ -1,21 +1,23 @@
 {
     "statblock": {
-      "name": "Cabby the Caterpie",
-      "stats": {
-        "ac": 10,
-        "hp": 22,
-        "speed": 30
+      "name": "blabby the blastoise",
+      "ac": 18,
+      "hp": {
+        "max": 138,
+        "current": 138
       },
+      "speed": 20,
       "abilities": {
         "str": 20,
-        "con": 2,
-        "dex": 4,
-        "int": 1,
-        "wis": 4,
-        "cha": 2
+        "con": 20,
+        "dex": 9,
+        "int": 12,
+        "wis": 10,
+        "cha": 11
       },
       "saves": [
-        "CHA"
+        "STR",
+        "CON"
       ],
       "skills": {
         "nature": {
@@ -23,32 +25,31 @@
         }
       },
       "vulnerabilities": [
-        "fire",
         "rock",
-        "flying"
+        "flying",
+        "electric"
       ],
       "resistances": [
-        "bug"
+        "water",
+        "fire"
       ],
       "immunities": [
         "none :("
       ],
-      "condition_immunities": [
-        "prone"
-      ],
+      "condition_immunities": [],
       "senses": {
         "blindsight": 0,
-        "darkvision": 5,
+        "darkvision": 0,
         "tremorsense": 0,
         "truesight": 0
       },
       "languages": {
         "speaks": [
-          "caterpiean"
+          "aquan"
         ],
         "understands": [
-          "caterpiean but he shy :("
+          "common but can only say blastoise"
         ]
       }
     }
-  }
+}

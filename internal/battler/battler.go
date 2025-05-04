@@ -32,6 +32,7 @@ func (b Battler) DisplayNames() {
 			count = 0
 		}
 		fmt.Print(name)
+		count++
 	}
 	fmt.Printf("\n")
 }
