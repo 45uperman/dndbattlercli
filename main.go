@@ -3,12 +3,12 @@ package main
 import (
 	"bufio"
 	"fmt"
-	"math/rand"
 	"os"
 	"strings"
 
 	"github.com/45uperman/dndbattlercli/internal/battler"
 	"github.com/45uperman/dndbattlercli/internal/battler/combatant"
+	"github.com/45uperman/dndbattlercli/internal/battler/dice"
 	"github.com/45uperman/dndbattlercli/internal/process"
 )
 
@@ -132,14 +132,7 @@ func main() {
 }
 
 func cleanInput(text string) (cleanWords []string) {
-	trimmedText := strings.TrimSpace(text)
-	words := strings.Split(trimmedText, " ")
-	for i := range words {
-		if strings.TrimSpace(words[i]) != "" {
-			cleanWords = append(cleanWords, strings.ToLower(words[i]))
-		}
-	}
-	return cleanWords
+	return strings.Fields(strings.ToLower(text))
 }
 
 func commandExit(cfg *config, params []string) error {
@@ -226,65 +219,36 @@ func commandAttack(cfg *config, params []string) error {
 }
 
 func commandRoll(cfg *config, params []string) error {
-	var amount int
-	var denomination int
-
-	_, err := fmt.Sscanf(params[0], "%dd%d", &amount, &denomination)
+	d, err := dice.ReadDiceExpression(params[0])
 	if err != nil {
-		_, err = fmt.Sscanf(params[0], "d%d", &denomination)
-		if err != nil {
-			return fmt.Errorf("roll takes a die expression as an argument, such as '8d6' or 'd20', not %s", params[0])
-		}
-		amount = 1
+		return err
 	}
 
-	fmt.Println(roll(amount, denomination))
+	fmt.Println(d.Roll())
 
 	return nil
 }
 
 func commandAdvantage(cfg *config, params []string) error {
-	var amount int
-	var denomination int
-
-	_, err := fmt.Sscanf(params[0], "%dd%d", &amount, &denomination)
+	d, err := dice.ReadDiceExpression(params[0])
 	if err != nil {
-		_, err = fmt.Sscanf(params[0], "d%d", &denomination)
-		if err != nil {
-			return fmt.Errorf("advantage takes a die expression as an argument, such as '8d6' or 'd20', not %s", params[0])
-		}
-		amount = 1
+		return err
 	}
 
-	fmt.Println(max(roll(amount, denomination), roll(amount, denomination)))
+	fmt.Println(max(d.Roll(), d.Roll()))
 
 	return nil
 
 }
 
 func commandDisadvantage(cfg *config, params []string) error {
-	var amount int
-	var denomination int
-
-	_, err := fmt.Sscanf(params[0], "%dd%d", &amount, &denomination)
+	d, err := dice.ReadDiceExpression(params[0])
 	if err != nil {
-		_, err = fmt.Sscanf(params[0], "d%d", &denomination)
-		if err != nil {
-			return fmt.Errorf("disadvantage takes a die expression as an argument, such as '8d6' or 'd20', not %s", params[0])
-		}
-		amount = 1
+		return err
 	}
 
-	fmt.Println(min(roll(amount, denomination), roll(amount, denomination)))
+	fmt.Println(min(d.Roll(), d.Roll()))
 
 	return nil
 
-}
-
-func roll(amount, denomination int) int {
-	total := 0
-	for range amount {
-		total += (rand.Intn(denomination) + 1)
-	}
-	return total
 }
