@@ -9,13 +9,13 @@ import (
 
 type Battler struct {
 	Combatants map[string]combatant.Combatant
-	mu         *sync.RWMutex
+	MU         *sync.RWMutex
 }
 
 func (b Battler) DisplayNames() {
 	count := 0
-	b.mu.RLock()
-	defer b.mu.RUnlock()
+	b.MU.RLock()
+	defer b.MU.RUnlock()
 	for name, _ := range b.Combatants {
 		switch count {
 		case 0:
@@ -38,15 +38,15 @@ func (b Battler) DisplayNames() {
 }
 
 func (b Battler) AddCombatant(c combatant.Combatant) {
-	b.mu.Lock()
-	defer b.mu.Unlock()
+	b.MU.Lock()
+	defer b.MU.Unlock()
 	b.Combatants[c.StatBlock.Name] = c
 }
 
 func NewBattler() Battler {
 	b := Battler{
 		Combatants: map[string]combatant.Combatant{},
-		mu:         &sync.RWMutex{},
+		MU:         &sync.RWMutex{},
 	}
 	return b
 }

@@ -80,6 +80,16 @@ func init() {
 				description: "Rolls the provided amount of dice of the provided denomination twice and displays the lowest total",
 				callback:    commandDisadvantage,
 			},
+			"view": {
+				name:        "view",
+				description: "Displays the selected combatant",
+				callback:    commandView,
+			},
+			"action": {
+				name:        "action",
+				description: "Takes the provided action of the selected combatant",
+				callback:    commandAction,
+			},
 		},
 		isRunning: true,
 	}
@@ -160,6 +170,8 @@ func commandSelect(cfg *config, params []string) error {
 	}
 
 	name := strings.Join(params, " ")
+	cfg.battler.MU.RLock()
+	defer cfg.battler.MU.RUnlock()
 	c, ok := cfg.battler.Combatants[name]
 	if !ok {
 		return fmt.Errorf("could not find combatant: %s", name)
@@ -170,7 +182,20 @@ func commandSelect(cfg *config, params []string) error {
 	return nil
 }
 
+func commandView(cfg *config, params []string) error {
+	if cfg.selection.StatBlock.Name == "" {
+		return fmt.Errorf("view requires a combatant to have already been selected using the select command")
+	}
+
+	cfg.selection.Display()
+	return nil
+}
+
 func commandDmg(cfg *config, params []string) error {
+	if len(params) < 2 {
+		return fmt.Errorf("dmg requires two arguments: the amount of damage, and the type of damage")
+	}
+
 	if cfg.selection.StatBlock.Name == "" {
 		return fmt.Errorf("dmg requires a combatant to have already been selected using the select command")
 	}
@@ -178,7 +203,7 @@ func commandDmg(cfg *config, params []string) error {
 	var dmg int
 	_, err := fmt.Sscanf(params[0], "%d", &dmg)
 	if err != nil {
-		return fmt.Errorf("dmg takes a whole number as an argument, not %s", params[0])
+		return fmt.Errorf("dmg takes a whole number as it's first argument, not %s", params[0])
 	}
 
 	cfg.selection.TakeDMG(dmg, params[1])
@@ -214,6 +239,23 @@ func commandAttack(cfg *config, params []string) error {
 	}
 
 	cfg.selection.Attack(attackRoll)
+
+	return nil
+}
+
+func commandAction(cfg *config, params []string) error {
+	if cfg.selection.StatBlock.Name == "" {
+		return fmt.Errorf("action requires a combatant to have already been selected using the select command")
+	}
+
+	if params[0] == "" {
+		return fmt.Errorf("action takes the name of an action as it's arguments - try checking the statblock of the selected combatant\nwith the view command")
+	}
+
+	err := cfg.selection.DoAction(strings.Join(params, "_"))
+	if err != nil {
+		return err
+	}
 
 	return nil
 }

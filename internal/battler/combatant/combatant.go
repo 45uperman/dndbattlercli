@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"slices"
 	"strings"
+
+	"github.com/45uperman/dndbattlercli/internal/battler/dice"
 )
 
 type Combatant struct {
@@ -96,6 +98,48 @@ func (c Combatant) Attack(attackRoll int) {
 	} else {
 		fmt.Println("Miss!")
 	}
+}
+
+func (c Combatant) DoAction(actionName string) error {
+	action, ok := c.StatBlock.Actions[actionName]
+	if !ok {
+		return fmt.Errorf("action not found: %s", actionName)
+	}
+	sep := "-------------------------------------------------------"
+	fmt.Println(sep)
+
+	if action.AttackRoll.Present {
+		d, err := dice.ReadDiceExpression(fmt.Sprintf("d20+%d", action.AttackRoll.Modifier))
+		if err != nil {
+			return err
+		}
+
+		fmt.Printf("Attack roll:\n - %d to hit\n", d.Roll())
+	}
+
+	if action.SavingThrow.Present {
+		fmt.Printf(
+			"\nRequires DC %d %s saving throw!\n",
+			action.SavingThrow.DC,
+			strings.ToUpper(action.SavingThrow.Ability),
+		)
+	}
+
+	fmt.Println("\nEffects:")
+	for name, effect := range action.Effects {
+		d, err := dice.ReadDiceExpression(effect.Roll)
+		if err != nil {
+			return err
+		}
+
+		fmt.Printf(" - %s: %d %s\n", name, d.Roll(), effect.Type)
+	}
+
+	fmt.Println(sep)
+	fmt.Println(action.Description)
+	fmt.Println(sep)
+
+	return nil
 }
 
 func (c Combatant) Display() {

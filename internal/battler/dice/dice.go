@@ -28,9 +28,12 @@ func ReadDiceExpression(expr string) (Dice, error) {
 	if err != nil {
 		_, err := fmt.Sscanf(expr, "%dd%d", &amount, &denomination)
 		if err != nil {
-			_, err = fmt.Sscanf(expr, "d%d", &denomination)
+			_, err = fmt.Sscanf(expr, "d%d+%d", &denomination, &modifier)
 			if err != nil {
-				return Dice{}, fmt.Errorf("invalid dice expression '%s'\ntry something like '2d4+2', '8d6', or 'd20'", expr)
+				_, err = fmt.Sscanf(expr, "d%d", &denomination)
+				if err != nil {
+					return Dice{}, fmt.Errorf("invalid dice expression '%s'\ntry something like '2d4+2', '8d6', or 'd20'", expr)
+				}
 			}
 			amount = 1
 		}
