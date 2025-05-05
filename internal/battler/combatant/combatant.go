@@ -21,10 +21,8 @@ type Combatant struct {
 			WIS int `json:"wis"`
 			CHA int `json:"cha"`
 		} `json:"abilities"`
-		Saves  []string `json:"saves"`
-		Skills map[string]struct {
-			Expertise bool `json:"expertise"`
-		} `json:"skills"`
+		Saves               map[string]int `json:"saves"`
+		Skills              map[string]int `json:"skills"`
 		Vulnerabilities     []string       `json:"vulnerabilities"`
 		Resistances         []string       `json:"resistances"`
 		Immunities          []string       `json:"immunities"`
@@ -34,6 +32,23 @@ type Combatant struct {
 			Speaks      []string
 			Understands []string
 		} `json:"languages"`
+		Traits  map[string]string `json:"traits"`
+		Actions map[string]struct {
+			AttackRoll struct {
+				Present  bool `json:"present"`
+				Modifier int  `json:"modifier"`
+			} `json:"attack_roll"`
+			SavingThrow struct {
+				Present bool   `json:"present"`
+				Ability string `json:"ability"`
+				DC      int    `json:"dc"`
+			} `json:"saving_throw"`
+			Effects map[string]struct {
+				Roll string `json:"roll"`
+				Type string `json:"type"`
+			} `json:"effects"`
+			Description string `json:"description"`
+		} `json:"actions"`
 	} `json:"statblock"`
 }
 
@@ -87,17 +102,7 @@ func (c Combatant) Display() {
 	sep := "-------------------------------------------------------"
 	fmt.Println("=======================================================")
 
-	trimmedText := strings.TrimSpace(c.StatBlock.Name)
-	words := strings.Split(trimmedText, " ")
-	for i, word := range words {
-		if strings.TrimSpace(word) != "" {
-			if i != 0 {
-				fmt.Print(" ")
-			}
-			fmt.Print(strings.ToUpper(word[:1]) + word[1:])
-		}
-	}
-	fmt.Printf(" | %s\n", c.StatBlock.Type)
+	fmt.Printf("%s | %s\n", capitalize(c.StatBlock.Name), c.StatBlock.Type)
 
 	fmt.Println(sep)
 
@@ -120,6 +125,8 @@ func (c Combatant) Display() {
 		var scoreStr string
 		if score >= 10 {
 			scoreStr = fmt.Sprintf("  %d +%d  ", score, (score-10)/2)
+		} else if score == 9 {
+			scoreStr = fmt.Sprintf("  %d  +0  ", score)
 		} else {
 			scoreStr = fmt.Sprintf("  %d  %d  ", score, (score-10)/2)
 		}
@@ -127,7 +134,49 @@ func (c Combatant) Display() {
 	}
 	fmt.Printf("\n")
 
-	fmt.Println(sep)
+	if len(c.StatBlock.Saves) != 0 {
+		fmt.Println(sep)
+
+		i := 0
+		fmt.Print("Saving Throws ")
+		for ability, modifier := range c.StatBlock.Saves {
+			if modifier >= 0 {
+				prettyPrintListItem(
+					fmt.Sprintf("%s +%d", strings.ToUpper(ability), modifier),
+					"",
+					&i,
+				)
+			} else {
+				prettyPrintListItem(
+					fmt.Sprintf("%s %d", strings.ToUpper(ability), modifier),
+					"",
+					&i,
+				)
+			}
+		}
+		fmt.Printf("\n")
+	}
+
+	if len(c.StatBlock.Skills) != 0 {
+		i := 0
+		fmt.Print("Skills ")
+		for skill, modifier := range c.StatBlock.Skills {
+			if modifier >= 0 {
+				prettyPrintListItem(
+					fmt.Sprintf("%s +%d", capitalize(strings.Replace(skill, "_", " ", -1)), modifier),
+					"",
+					&i,
+				)
+			} else {
+				prettyPrintListItem(
+					fmt.Sprintf("%s %d", capitalize(strings.Replace(skill, "_", " ", -1)), modifier),
+					"",
+					&i,
+				)
+			}
+		}
+		fmt.Printf("\n")
+	}
 
 	printIfPopulated(c.StatBlock.Vulnerabilities, "Vulnerabilities", "")
 
@@ -135,11 +184,7 @@ func (c Combatant) Display() {
 
 	printIfPopulated(c.StatBlock.Immunities, "Immunities", "")
 
-	fmt.Println(sep)
-
 	printIfPopulated(c.StatBlock.ConditionImmunities, "Condition immunities", "")
-
-	fmt.Println(sep)
 
 	i := 0
 	fmt.Print("Senses: ")
@@ -148,14 +193,60 @@ func (c Combatant) Display() {
 			prettyPrintListItem(fmt.Sprintf("%s %dft", sense, distance), "", &i)
 		}
 	}
+	passivePerception := 10
+	mod, ok := c.StatBlock.Skills["perception"]
+	if ok {
+		passivePerception += mod
+	} else {
+		passivePerception += c.StatBlock.Abilities.WIS
+	}
+	switch i {
+	case 0:
+	case 1:
+		fallthrough
+	case 2:
+		fmt.Printf(", ")
+	case 3:
+		fmt.Printf("\n")
+	}
+	fmt.Print(passivePerception)
 	fmt.Printf("\n")
-
-	fmt.Println(sep)
 
 	fmt.Println("Languages:")
 
 	printIfPopulated(c.StatBlock.Languages.Speaks, "-Speaks", " ")
 	printIfPopulated(c.StatBlock.Languages.Understands, "-Understands", " ")
+
+	if len(c.StatBlock.Traits) != 0 {
+		fmt.Println(sep)
+
+		fmt.Println("Traits")
+
+		for name, trait := range c.StatBlock.Traits {
+			fmt.Printf(
+				"\n%s. %s\n",
+				capitalize(strings.Replace(name, "_", " ", -1)),
+				trait,
+			)
+		}
+		fmt.Printf("\n")
+	}
+
+	if len(c.StatBlock.Actions) != 0 {
+		fmt.Println(sep)
+
+		fmt.Println("Actions")
+
+		for name, action := range c.StatBlock.Actions {
+			fmt.Printf(
+				"\n%s. %s\n",
+				capitalize(strings.Replace(name, "_", " ", -1)),
+				action.Description,
+			)
+		}
+		fmt.Printf("\n")
+	}
+
 	fmt.Println("=======================================================")
 
 }
@@ -189,4 +280,13 @@ func printIfPopulated(li []string, name, itemIndent string) {
 		fmt.Printf("%s: ", name)
 		prettyPrintList(li, itemIndent, &i)
 	}
+}
+
+func capitalize(text string) string {
+	words := strings.Fields(text)
+	var capitalizedWords []string
+	for _, word := range words {
+		capitalizedWords = append(capitalizedWords, strings.ToUpper(word[:1])+word[1:])
+	}
+	return strings.Join(capitalizedWords, " ")
 }
