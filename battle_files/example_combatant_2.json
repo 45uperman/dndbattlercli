@@ -1,83 +1,84 @@
 {
-    "statblock": {
-      "name": "blabby the blastoise",
-      "type": "pokemon (water)",
-      "ac": 18,
-      "hp": {
-        "max": 138,
-        "current": 138
-      },
-      "speed": 20,
-      "abilities": {
-        "str": 20,
-        "con": 20,
-        "dex": 9,
-        "int": 12,
-        "wis": 10,
-        "cha": 11
-      },
-      "saves": {
-        "str": 8,
-        "con": 8
-      },
-      "skills": {
-        "nature": 4
-      },
-      "vulnerabilities": [
-        "grass",
-        "electric"
+  "statblock": {
+    "file_name": "example_combatant_2.json",
+    "name": "blabby the blastoise",
+    "type": "pokemon (water)",
+    "hp": {
+      "current": 138,
+      "max": 138
+    },
+    "ac": 18,
+    "speed": 20,
+    "abilities": {
+      "str": 20,
+      "dex": 9,
+      "con": 20,
+      "int": 12,
+      "wis": 10,
+      "cha": 11
+    },
+    "saves": {
+      "con": 8,
+      "str": 8
+    },
+    "skills": {
+      "nature": 4
+    },
+    "vulnerabilities": [
+      "grass",
+      "electric"
+    ],
+    "resistances": [
+      "water",
+      "fire",
+      "ice",
+      "steel"
+    ],
+    "immunities": [
+      "none :("
+    ],
+    "condition_immunities": [],
+    "senses": {
+      "blindsight": 0,
+      "darkvision": 0,
+      "tremorsense": 0,
+      "truesight": 0
+    },
+    "languages": {
+      "Speaks": [
+        "aquan"
       ],
-      "resistances": [
-        "water",
-        "fire",
-        "ice",
-        "steel"
-      ],
-      "immunities": [
-        "none :("
-      ],
-      "condition_immunities": [],
-      "senses": {
-        "blindsight": 0,
-        "darkvision": 0,
-        "tremorsense": 0,
-        "truesight": 0
-      },
-      "languages": {
-        "speaks": [
-          "aquan"
-        ],
-        "understands": [
-          "common but can only say blastoise"
-        ]
-      },
-      "traits": {
-        "torrent": "While blastoise has less than half its hit\npoints remaining, any water damage\nit deals is multiplied by 1.5.",
-        "rain_dish": "While blastoise is standing in rain, it\nregains 2d8 hit points at the end of\neach of its turns."
-      },
-      "actions": {
-        "hydro_pump": {
-          "attack_roll": {
-            "present": true,
-            "modifier": 5
+      "Understands": [
+        "common but can only say blastoise"
+      ]
+    },
+    "traits": {
+      "rain_dish": "While blastoise is standing in rain, it\nregains 2d8 hit points at the end of\neach of its turns.",
+      "torrent": "While blastoise has less than half its hit\npoints remaining, any water damage\nit deals is multiplied by 1.5."
+    },
+    "actions": {
+      "hydro_pump": {
+        "attack_roll": {
+          "present": true,
+          "modifier": 5
+        },
+        "saving_throw": {
+          "present": false,
+          "ability": "",
+          "dc": 0
+        },
+        "effects": {
+          "damage": {
+            "roll": "2d6+5",
+            "type": "water"
           },
-          "saving_throw": {
-            "present": false,
-            "ability": "",
-            "dc": 0
-          },
-          "effects": {
-            "damage": {
-              "roll": "2d6+5",
-              "type": "water"
-            },
-            "stab": {
-              "roll": "1d6+2",
-              "type": "water"
-            }
-          },
-          "description": "Ranged Weapon Attack: +5 to hit,\nrange 60/120 ft., one target.\nHit: 12 (2d6 + 5) water damage."
-        }
+          "stab": {
+            "roll": "1d6+2",
+            "type": "water"
+          }
+        },
+        "description": "Ranged Weapon Attack: +5 to hit,\nrange 60/120 ft., one target.\nHit: 12 (2d6 + 5) water damage."
       }
     }
+  }
 }

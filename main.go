@@ -139,6 +139,10 @@ func main() {
 			fmt.Println(err)
 		}
 	}
+	err = process.SaveFiles(cfg.battler)
+	if err != nil {
+		fmt.Println(err)
+	}
 }
 
 func cleanInput(text string) (cleanWords []string) {

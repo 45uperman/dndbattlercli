@@ -10,6 +10,36 @@ import (
 	"github.com/45uperman/dndbattlercli/internal/battler/combatant"
 )
 
+func SaveFiles(b battler.Battler) error {
+	exePath, err := os.Executable()
+	if err != nil {
+		return fmt.Errorf("error finding program path: %w", err)
+	}
+
+	root := filepath.Dir(exePath)
+	absPath := root + "/battle_files/"
+
+	b.MU.RLock()
+	defer b.MU.RUnlock()
+
+	returnAddresses := make(map[string][]byte, len(b.Combatants))
+	for _, combatant := range b.Combatants {
+		returnAddresses[combatant.StatBlock.FileName], err = json.MarshalIndent(combatant, "", "  ")
+		if err != nil {
+			return fmt.Errorf("error marshaling %s: %s", combatant.StatBlock.Name, err)
+		}
+	}
+
+	for address, data := range returnAddresses {
+		err = os.WriteFile(absPath+address, data, 0777)
+		if err != nil {
+			fmt.Printf("error writing file %s: %s\n", address, err)
+		}
+	}
+
+	return nil
+}
+
 func LoadFiles() (battler.Battler, error) {
 	exePath, err := os.Executable()
 	if err != nil {

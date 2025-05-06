@@ -10,6 +10,7 @@ import (
 
 type Combatant struct {
 	StatBlock struct {
+		FileName  string         `json:"file_name"`
 		Name      string         `json:"name"`
 		Type      string         `json:"type"`
 		HP        map[string]int `json:"hp"`
