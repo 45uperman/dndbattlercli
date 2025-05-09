@@ -26,17 +26,30 @@ func ReadDiceExpression(expr string) (Dice, error) {
 
 	_, err := fmt.Sscanf(expr, "%dd%d+%d", &amount, &denomination, &modifier)
 	if err != nil {
-		_, err := fmt.Sscanf(expr, "%dd%d", &amount, &denomination)
+		_, err := fmt.Sscanf(expr, "%dd%d-%d", &amount, &denomination, &modifier)
 		if err != nil {
-			_, err = fmt.Sscanf(expr, "d%d+%d", &denomination, &modifier)
+			_, err := fmt.Sscanf(expr, "%dd%d", &amount, &denomination)
 			if err != nil {
-				_, err = fmt.Sscanf(expr, "d%d", &denomination)
+				_, err = fmt.Sscanf(expr, "d%d+%d", &denomination, &modifier)
 				if err != nil {
-					return Dice{}, fmt.Errorf("invalid dice expression '%s'\ntry something like '2d4+2', '8d6', or 'd20'", expr)
+					_, err = fmt.Sscanf(expr, "d%d-%d", &denomination, &modifier)
+					if err != nil {
+						_, err = fmt.Sscanf(expr, "d%d", &denomination)
+						if err != nil {
+							return Dice{}, fmt.Errorf("invalid dice expression '%s'\ntry something like '2d4+2', '8d6', or 'd20'", expr)
+						}
+					}
+					modifier *= -1
 				}
+				amount = 1
 			}
-			amount = 1
 		}
+		modifier *= -1
 	}
+
+	if amount < 0 || denomination < 0 {
+		return Dice{}, fmt.Errorf("invalid dice expression '%s'\ntry something like '2d4+2', '8d6', or 'd20'", expr)
+	}
+
 	return Dice{Amount: amount, Denomination: denomination, Modifier: modifier}, nil
 }

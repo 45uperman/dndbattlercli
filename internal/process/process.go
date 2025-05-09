@@ -22,18 +22,15 @@ func SaveFiles(b battler.Battler) error {
 	b.MU.RLock()
 	defer b.MU.RUnlock()
 
-	returnAddresses := make(map[string][]byte, len(b.Combatants))
 	for _, combatant := range b.Combatants {
-		returnAddresses[combatant.StatBlock.FileName], err = json.MarshalIndent(combatant, "", "  ")
+		data, err := json.MarshalIndent(combatant, "", "  ")
 		if err != nil {
 			return fmt.Errorf("error marshaling %s: %s", combatant.StatBlock.Name, err)
 		}
-	}
 
-	for address, data := range returnAddresses {
-		err = os.WriteFile(absPath+address, data, 0777)
+		err = os.WriteFile(absPath+combatant.StatBlock.FileName, data, 0777)
 		if err != nil {
-			fmt.Printf("error writing file %s: %s\n", address, err)
+			fmt.Printf("error writing file %s: %s\n", combatant.StatBlock.FileName, err)
 		}
 	}
 

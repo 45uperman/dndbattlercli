@@ -15,7 +15,12 @@ import (
 type cliCommand struct {
 	name        string
 	description string
-	callback    func(*config, []string) error
+	callback    func(*config, []argument) error
+}
+
+type argument struct {
+	text  string
+	flags []string
 }
 
 type config struct {
@@ -115,24 +120,18 @@ func main() {
 			continue
 		}
 
-		input := cleanInput(scanner.Text())
+		input := scanner.Text()
 		if len(input) == 0 {
 			continue
 		}
 
-		command := input[0]
-		var args []string
-		if len(input) == 1 {
-			args = []string{""}
-		} else {
-			args = input[1:]
-		}
-
-		commandStruct, ok := cfg.supportedCommands[command]
-		if !ok {
-			fmt.Println("Invalid command!")
+		command, args, err := parseInput(input)
+		if err != nil {
+			fmt.Println(err)
 			continue
 		}
+
+		commandStruct := cfg.supportedCommands[command]
 
 		err = commandStruct.callback(cfg, args)
 		if err != nil {
@@ -145,35 +144,80 @@ func main() {
 	}
 }
 
-func cleanInput(text string) (cleanWords []string) {
-	return strings.Fields(strings.ToLower(text))
+func parseInput(input string) (command string, args []argument, err error) {
+	splitInput := strings.SplitN(strings.ToLower(input), " ", 2)
+	command = strings.TrimSpace(splitInput[0])
+	_, ok := cfg.supportedCommands[command]
+	if !ok {
+		return "", []argument{}, fmt.Errorf("invalid command: '%s'", command)
+	}
+
+	if len(splitInput) == 1 {
+		return command, []argument{}, nil
+	}
+
+	for rawArg := range strings.SplitSeq(splitInput[1], ",") {
+		rawArg := strings.TrimLeft(rawArg, " ")
+
+		startOfFlagsIndex := strings.Index(rawArg, "--")
+
+		if startOfFlagsIndex == -1 {
+			trimmedText := strings.TrimSpace(rawArg)
+			args = append(
+				args,
+				argument{
+					text: trimmedText,
+				},
+			)
+			continue
+		}
+
+		rawText, rawFlags := rawArg[:startOfFlagsIndex], rawArg[startOfFlagsIndex:]
+
+		var trimmedFlags []string
+		for flag := range strings.SplitSeq(rawFlags, "--") {
+			trimmedFlags = append(trimmedFlags, strings.TrimSpace(flag))
+		}
+
+		trimmedText := strings.TrimSpace(rawText)
+
+		args = append(
+			args,
+			argument{
+				text:  trimmedText,
+				flags: trimmedFlags,
+			},
+		)
+	}
+
+	return command, args, nil
 }
 
-func commandExit(cfg *config, params []string) error {
+func commandExit(cfg *config, params []argument) error {
 	fmt.Println("Closing the program...")
 	cfg.isRunning = false
 	return nil
 }
 
-func commandHelp(cfg *config, params []string) error {
+func commandHelp(cfg *config, params []argument) error {
 	fmt.Printf("Commands:\n\n")
 	for _, command := range cfg.supportedCommands {
-		fmt.Printf("%s: %s\n", command.name, command.description)
+		fmt.Printf("%s: %s\n\n", command.name, command.description)
 	}
 	return nil
 }
 
-func commandNames(cfg *config, params []string) error {
+func commandNames(cfg *config, params []argument) error {
 	cfg.battler.DisplayNames()
 	return nil
 }
 
-func commandSelect(cfg *config, params []string) error {
-	if params[0] == "" {
+func commandSelect(cfg *config, params []argument) error {
+	if params[0].text == "" {
 		return fmt.Errorf("the select command requires the name of the combatant you want to select")
 	}
 
-	name := strings.Join(params, " ")
+	name := params[0].text
 	cfg.battler.MU.RLock()
 	defer cfg.battler.MU.RUnlock()
 	c, ok := cfg.battler.Combatants[name]
@@ -186,7 +230,7 @@ func commandSelect(cfg *config, params []string) error {
 	return nil
 }
 
-func commandView(cfg *config, params []string) error {
+func commandView(cfg *config, params []argument) error {
 	if cfg.selection.StatBlock.Name == "" {
 		return fmt.Errorf("view requires a combatant to have already been selected using the select command")
 	}
@@ -195,7 +239,7 @@ func commandView(cfg *config, params []string) error {
 	return nil
 }
 
-func commandDmg(cfg *config, params []string) error {
+func commandDmg(cfg *config, params []argument) error {
 	if len(params) < 2 {
 		return fmt.Errorf("dmg requires two arguments: the amount of damage, and the type of damage")
 	}
@@ -205,23 +249,23 @@ func commandDmg(cfg *config, params []string) error {
 	}
 
 	var dmg int
-	_, err := fmt.Sscanf(params[0], "%d", &dmg)
+	_, err := fmt.Sscanf(params[0].text, "%d", &dmg)
 	if err != nil {
 		return fmt.Errorf("dmg takes a whole number as it's first argument, not %s", params[0])
 	}
 
-	cfg.selection.TakeDMG(dmg, params[1])
+	cfg.selection.TakeDMG(dmg, params[1].text)
 
 	return nil
 }
 
-func commandHeal(cfg *config, params []string) error {
+func commandHeal(cfg *config, params []argument) error {
 	if cfg.selection.StatBlock.Name == "" {
 		return fmt.Errorf("heal requires a combatant to have already been selected using the select command")
 	}
 
 	var hp int
-	_, err := fmt.Sscanf(params[0], "%d", &hp)
+	_, err := fmt.Sscanf(params[0].text, "%d", &hp)
 	if err != nil {
 		return fmt.Errorf("heal takes a whole number as an argument, not '%s'", params[0])
 	}
@@ -231,13 +275,13 @@ func commandHeal(cfg *config, params []string) error {
 	return nil
 }
 
-func commandAttack(cfg *config, params []string) error {
+func commandAttack(cfg *config, params []argument) error {
 	if cfg.selection.StatBlock.Name == "" {
 		return fmt.Errorf("attack requires a combatant to have already been selected using the select command")
 	}
 
 	var attackRoll int
-	_, err := fmt.Sscanf(params[0], "%d", &attackRoll)
+	_, err := fmt.Sscanf(params[0].text, "%d", &attackRoll)
 	if err != nil {
 		return fmt.Errorf("attack takes a whole number as an argument, not '%s'", params[0])
 	}
@@ -247,16 +291,17 @@ func commandAttack(cfg *config, params []string) error {
 	return nil
 }
 
-func commandAction(cfg *config, params []string) error {
+func commandAction(cfg *config, params []argument) error {
 	if cfg.selection.StatBlock.Name == "" {
 		return fmt.Errorf("action requires a combatant to have already been selected using the select command")
 	}
 
-	if params[0] == "" {
+	if params[0].text == "" {
 		return fmt.Errorf("action takes the name of an action as it's arguments - try checking the statblock of the selected combatant\nwith the view command")
 	}
 
-	err := cfg.selection.DoAction(strings.Join(params, "_"))
+	actionName := strings.ReplaceAll(params[0].text, " ", "_")
+	err := cfg.selection.DoAction(actionName)
 	if err != nil {
 		return err
 	}
@@ -264,8 +309,8 @@ func commandAction(cfg *config, params []string) error {
 	return nil
 }
 
-func commandRoll(cfg *config, params []string) error {
-	d, err := dice.ReadDiceExpression(params[0])
+func commandRoll(cfg *config, params []argument) error {
+	d, err := dice.ReadDiceExpression(params[0].text)
 	if err != nil {
 		return err
 	}
@@ -275,8 +320,8 @@ func commandRoll(cfg *config, params []string) error {
 	return nil
 }
 
-func commandAdvantage(cfg *config, params []string) error {
-	d, err := dice.ReadDiceExpression(params[0])
+func commandAdvantage(cfg *config, params []argument) error {
+	d, err := dice.ReadDiceExpression(params[0].text)
 	if err != nil {
 		return err
 	}
@@ -287,8 +332,8 @@ func commandAdvantage(cfg *config, params []string) error {
 
 }
 
-func commandDisadvantage(cfg *config, params []string) error {
-	d, err := dice.ReadDiceExpression(params[0])
+func commandDisadvantage(cfg *config, params []argument) error {
+	d, err := dice.ReadDiceExpression(params[0].text)
 	if err != nil {
 		return err
 	}
