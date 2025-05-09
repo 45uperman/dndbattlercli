@@ -20,7 +20,7 @@ type cliCommand struct {
 
 type argument struct {
 	text  string
-	flags []string
+	flags map[string][]string
 }
 
 type config struct {
@@ -79,16 +79,6 @@ func init() {
 				name:        "roll",
 				description: "Rolls the provided amount of dice of the provided denomination and displays the total",
 				callback:    commandRoll,
-			},
-			"advantage": {
-				name:        "advantage",
-				description: "Rolls the provided amount of dice of the provided denomination twice and displays the highest total",
-				callback:    commandAdvantage,
-			},
-			"disadvantage": {
-				name:        "disadvantage",
-				description: "Rolls the provided amount of dice of the provided denomination twice and displays the lowest total",
-				callback:    commandDisadvantage,
 			},
 			"view": {
 				name:        "view",
@@ -179,9 +169,24 @@ func parseInput(input string) (command string, args []argument, err error) {
 
 		rawText, rawFlags := rawArg[:startOfFlagsIndex], rawArg[startOfFlagsIndex:]
 
-		var trimmedFlags []string
+		mappedFlags := make(map[string][]string, 1)
 		for flag := range strings.SplitSeq(rawFlags, "--") {
-			trimmedFlags = append(trimmedFlags, strings.TrimSpace(flag))
+			flagFields := strings.Fields(flag)
+
+			if len(flagFields) == 0 {
+				continue
+			}
+
+			flagName := flagFields[0]
+
+			var flagValues []string
+			if len(flagFields) < 1 {
+				flagValues = []string{""}
+			} else {
+				flagValues = flagFields[1:]
+			}
+
+			mappedFlags[flagName] = flagValues
 		}
 
 		trimmedText := strings.TrimSpace(rawText)
@@ -190,7 +195,7 @@ func parseInput(input string) (command string, args []argument, err error) {
 			args,
 			argument{
 				text:  trimmedText,
-				flags: trimmedFlags,
+				flags: mappedFlags,
 			},
 		)
 	}
@@ -317,7 +322,10 @@ func commandSave(cfg *config, params []argument) error {
 
 	ability := params[1].text
 
-	success, err := cfg.selection.Save(dc, ability)
+	_, advPresent := params[1].flags["adv"]
+	_, disPresent := params[1].flags["dis"]
+
+	success, err := cfg.selection.Save(dc, ability, advPresent, disPresent)
 	if err != nil {
 		return err
 	}
@@ -355,31 +363,10 @@ func commandRoll(cfg *config, params []argument) error {
 		return err
 	}
 
-	fmt.Println(d.Roll())
+	_, advPresent := params[0].flags["adv"]
+	_, disPresent := params[0].flags["dis"]
+
+	fmt.Println(d.Roll(advPresent, disPresent))
 
 	return nil
-}
-
-func commandAdvantage(cfg *config, params []argument) error {
-	d, err := dice.ReadDiceExpression(params[0].text)
-	if err != nil {
-		return err
-	}
-
-	fmt.Println(max(d.Roll(), d.Roll()))
-
-	return nil
-
-}
-
-func commandDisadvantage(cfg *config, params []argument) error {
-	d, err := dice.ReadDiceExpression(params[0].text)
-	if err != nil {
-		return err
-	}
-
-	fmt.Println(min(d.Roll(), d.Roll()))
-
-	return nil
-
 }

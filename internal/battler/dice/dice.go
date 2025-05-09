@@ -11,11 +11,50 @@ type Dice struct {
 	Modifier     int
 }
 
-func (d Dice) Roll() int {
-	total := 0
+func (d Dice) Roll(adv, dis bool) int {
+	var total int
+	switch {
+	case adv && !dis:
+		// Advantage case, attack with advantage
+		total = d.adv()
+	case dis && !adv:
+		// Disadvantage case, attack with disadvantage
+		total = d.dis()
+	default:
+		// Advantage and disadvantage either cancel out or are not present,
+		// straight roll
+		total = d.straight()
+	}
+	return total
+}
+
+func (d Dice) adv() (total int) {
+	for range d.Amount {
+		total += max(
+			(rand.Intn(d.Denomination)+1)+d.Modifier,
+			(rand.Intn(d.Denomination)+1)+d.Modifier,
+		)
+	}
+
+	return total
+}
+
+func (d Dice) dis() (total int) {
+	for range d.Amount {
+		total += min(
+			(rand.Intn(d.Denomination)+1)+d.Modifier,
+			(rand.Intn(d.Denomination)+1)+d.Modifier,
+		)
+	}
+
+	return total
+}
+
+func (d Dice) straight() (total int) {
 	for range d.Amount {
 		total += (rand.Intn(d.Denomination) + 1) + d.Modifier
 	}
+
 	return total
 }
 

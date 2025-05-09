@@ -115,7 +115,7 @@ func (c Combatant) DoAction(actionName string) error {
 			return err
 		}
 
-		fmt.Printf("Attack roll:\n - %d to hit\n", d.Roll())
+		fmt.Printf("Attack roll:\n - %d to hit\n", d.Roll(false, false))
 	}
 
 	if action.SavingThrow.Present {
@@ -133,7 +133,7 @@ func (c Combatant) DoAction(actionName string) error {
 			return err
 		}
 
-		fmt.Printf(" - %s: %d %s\n", name, d.Roll(), effect.Type)
+		fmt.Printf(" - %s: %d %s\n", name, d.Roll(false, false), effect.Type)
 	}
 
 	fmt.Println(sep)
@@ -143,31 +143,28 @@ func (c Combatant) DoAction(actionName string) error {
 	return nil
 }
 
-func (c Combatant) Save(dc int, ability string) (bool, error) {
+func (c Combatant) Save(dc int, ability string, advantage, disadvantage bool) (bool, error) {
 	mod, ok := c.StatBlock.Saves[ability]
-	if ok {
-		total := dice.D20.Roll() + mod
-		result := total >= dc
-		return result, nil
+	if !ok {
+		switch ability {
+		case "str":
+			mod = c.StatBlock.Abilities.STR
+		case "dex":
+			mod = c.StatBlock.Abilities.DEX
+		case "con":
+			mod = c.StatBlock.Abilities.CON
+		case "int":
+			mod = c.StatBlock.Abilities.INT
+		case "wis":
+			mod = c.StatBlock.Abilities.WIS
+		case "cha":
+			mod = c.StatBlock.Abilities.CHA
+		default:
+			return false, fmt.Errorf("invalid ability: %s", ability)
+		}
 	}
 
-	var total int
-	switch ability {
-	case "str":
-		total = dice.D20.Roll() + c.StatBlock.Abilities.STR
-	case "dex":
-		total = dice.D20.Roll() + c.StatBlock.Abilities.DEX
-	case "con":
-		total = dice.D20.Roll() + c.StatBlock.Abilities.CON
-	case "int":
-		total = dice.D20.Roll() + c.StatBlock.Abilities.INT
-	case "wis":
-		total = dice.D20.Roll() + c.StatBlock.Abilities.WIS
-	case "cha":
-		total = dice.D20.Roll() + c.StatBlock.Abilities.CHA
-	default:
-		return false, fmt.Errorf("invalid ability: %s", ability)
-	}
+	total := dice.D20.Roll(advantage, disadvantage) + mod
 
 	result := total >= dc
 	return result, nil
