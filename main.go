@@ -70,6 +70,11 @@ func init() {
 				description: "Compares the provided attack roll to the selected combatant's AC and displays the result",
 				callback:    commandAttack,
 			},
+			"save": {
+				name:        "save",
+				description: "Makes a saving throw using the selected comatant's saving throw modifier of the provided ability\n      against the provided DC and displays the result",
+				callback:    commandSave,
+			},
 			"roll": {
 				name:        "roll",
 				description: "Rolls the provided amount of dice of the provided denomination and displays the total",
@@ -153,7 +158,7 @@ func parseInput(input string) (command string, args []argument, err error) {
 	}
 
 	if len(splitInput) == 1 {
-		return command, []argument{}, nil
+		return command, make([]argument, 1), nil
 	}
 
 	for rawArg := range strings.SplitSeq(splitInput[1], ",") {
@@ -283,10 +288,45 @@ func commandAttack(cfg *config, params []argument) error {
 	var attackRoll int
 	_, err := fmt.Sscanf(params[0].text, "%d", &attackRoll)
 	if err != nil {
-		return fmt.Errorf("attack takes a whole number as an argument, not '%s'", params[0])
+		return fmt.Errorf("attack takes a whole number as an argument, not '%s'", params[0].text)
 	}
 
-	cfg.selection.Attack(attackRoll)
+	if cfg.selection.Hits(attackRoll) {
+		fmt.Println("Hit!")
+	} else {
+		fmt.Println("Miss!")
+	}
+
+	return nil
+}
+
+func commandSave(cfg *config, params []argument) error {
+	if len(params) < 2 {
+		return fmt.Errorf("save requires two arguments: the DC, and the ability to be used for the saving throw")
+	}
+
+	if cfg.selection.StatBlock.Name == "" {
+		return fmt.Errorf("attack requires a combatant to have already been selected using the select command")
+	}
+
+	var dc int
+	_, err := fmt.Sscanf(params[0].text, "%d", &dc)
+	if err != nil {
+		return fmt.Errorf("save takes a whole number as it's first argument, not '%s'", params[0].text)
+	}
+
+	ability := params[1].text
+
+	success, err := cfg.selection.Save(dc, ability)
+	if err != nil {
+		return err
+	}
+
+	if success {
+		fmt.Println("Success!")
+	} else {
+		fmt.Println("Failure!")
+	}
 
 	return nil
 }

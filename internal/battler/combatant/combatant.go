@@ -93,11 +93,11 @@ func (c Combatant) HealHP(hp int) {
 	}
 }
 
-func (c Combatant) Attack(attackRoll int) {
+func (c Combatant) Hits(attackRoll int) bool {
 	if attackRoll >= c.StatBlock.AC {
-		fmt.Println("Hit!")
+		return true
 	} else {
-		fmt.Println("Miss!")
+		return false
 	}
 }
 
@@ -141,6 +141,36 @@ func (c Combatant) DoAction(actionName string) error {
 	fmt.Println(sep)
 
 	return nil
+}
+
+func (c Combatant) Save(dc int, ability string) (bool, error) {
+	mod, ok := c.StatBlock.Saves[ability]
+	if ok {
+		total := dice.D20.Roll() + mod
+		result := total >= dc
+		return result, nil
+	}
+
+	var total int
+	switch ability {
+	case "str":
+		total = dice.D20.Roll() + c.StatBlock.Abilities.STR
+	case "dex":
+		total = dice.D20.Roll() + c.StatBlock.Abilities.DEX
+	case "con":
+		total = dice.D20.Roll() + c.StatBlock.Abilities.CON
+	case "int":
+		total = dice.D20.Roll() + c.StatBlock.Abilities.INT
+	case "wis":
+		total = dice.D20.Roll() + c.StatBlock.Abilities.WIS
+	case "cha":
+		total = dice.D20.Roll() + c.StatBlock.Abilities.CHA
+	default:
+		return false, fmt.Errorf("invalid ability: %s", ability)
+	}
+
+	result := total >= dc
+	return result, nil
 }
 
 func (c Combatant) Display() {
