@@ -9,6 +9,7 @@ import (
 	"github.com/45uperman/dndbattlercli/internal/battler"
 	"github.com/45uperman/dndbattlercli/internal/battler/combatant"
 	"github.com/45uperman/dndbattlercli/internal/battler/dice"
+	"github.com/45uperman/dndbattlercli/internal/battler/spellbook"
 	"github.com/45uperman/dndbattlercli/internal/process"
 )
 
@@ -27,7 +28,7 @@ type config struct {
 	battler           battler.Battler
 	supportedCommands map[string]cliCommand
 	isRunning         bool
-	selection         combatant.Combatant
+	selection         *combatant.Combatant
 }
 
 var cfg *config
@@ -89,6 +90,11 @@ func init() {
 				name:        "action",
 				description: "Takes the provided action of the selected combatant",
 				callback:    commandAction,
+			},
+			"cast": {
+				name:        "cast",
+				description: "Casts the provided spell on the provided target(s)",
+				callback:    commandCast,
 			},
 		},
 		isRunning: true,
@@ -228,9 +234,7 @@ func commandSelect(cfg *config, params []argument) error {
 	}
 
 	name := params[0].text
-	cfg.battler.MU.RLock()
-	defer cfg.battler.MU.RUnlock()
-	c, ok := cfg.battler.Combatants[name]
+	c, ok := cfg.battler.GetCombatant(params[0].text)
 	if !ok {
 		return fmt.Errorf("could not find combatant: %s", name)
 	}
@@ -264,7 +268,26 @@ func commandDmg(cfg *config, params []argument) error {
 		return fmt.Errorf("dmg takes a whole number as it's first argument, not %s", params[0])
 	}
 
-	cfg.selection.TakeDMG(dmg, params[1].text)
+	report := cfg.selection.TakeDMG(dmg, params[1].text)
+
+	if report.WasAtZero {
+		fmt.Printf("%s was already at 0 hit points!\n", cfg.selection.StatBlock.Name)
+		return nil
+	}
+	if report.WasImmune {
+		fmt.Printf("%s is immune to %s damage!\n", cfg.selection.StatBlock.Name, params[1].text)
+		return nil
+	}
+
+	if report.WasResistant {
+		fmt.Printf("%s is resistant to %s damage!\n", cfg.selection.StatBlock.Name, params[1].text)
+	}
+	if report.WasVulnerable {
+		fmt.Printf("%s is vulnerable to %s damage!\n", cfg.selection.StatBlock.Name, params[1].text)
+	}
+	if report.DroppedToZero {
+		fmt.Printf("%s dropped to 0 hit points!\n", cfg.selection.StatBlock.Name)
+	}
 
 	return nil
 }
@@ -280,7 +303,11 @@ func commandHeal(cfg *config, params []argument) error {
 		return fmt.Errorf("heal takes a whole number as an argument, not '%s'", params[0])
 	}
 
-	cfg.selection.HealHP(hp)
+	report := cfg.selection.HealHP(hp)
+
+	if report.BackAboveZero {
+		fmt.Printf("%s is back above 0 hit points!\n", cfg.selection.StatBlock.Name)
+	}
 
 	return nil
 }
@@ -367,6 +394,167 @@ func commandRoll(cfg *config, params []argument) error {
 	_, disPresent := params[0].flags["dis"]
 
 	fmt.Println(d.Roll(advPresent, disPresent))
+
+	return nil
+}
+
+func commandCast(cfg *config, params []argument) error {
+	if len(params) < 2 {
+		return fmt.Errorf("cast requires at least two arguments: the name of the spell to be cast, and the target(s)")
+	}
+
+	spellName := params[0].text
+	spell, ok := cfg.battler.GetSpell(spellName)
+	if !ok {
+		return fmt.Errorf("spell not found: %s", spellName)
+	}
+
+	var castingLevel int
+	attackModifiers := make(map[string]int, 1)
+	effectModifiers := make(map[string]int, 1)
+	saveDCs := make(map[string]int, 1)
+
+	for flagName, flagValues := range params[0].flags {
+		switch flagName {
+		case "lvl":
+			var lvl int
+			_, err := fmt.Sscanf(flagValues[0], "%d", &lvl)
+			if err != nil {
+				continue
+			}
+			castingLevel = lvl
+		case "am":
+			if len(flagValues) < 2 {
+				continue
+			}
+			var mod int
+			_, err := fmt.Sscanf(flagValues[1], "%d", &mod)
+			if err != nil {
+				continue
+			}
+			attackModifiers[flagValues[0]] = mod
+		case "em":
+			if len(flagValues) < 2 {
+				continue
+			}
+			var mod int
+			_, err := fmt.Sscanf(flagValues[1], "%d", &mod)
+			if err != nil {
+				continue
+			}
+			effectModifiers[flagValues[0]] = mod
+		case "dc":
+			if len(flagValues) < 2 {
+				continue
+			}
+			var dc int
+			_, err := fmt.Sscanf(flagValues[1], "%d", &dc)
+			if err != nil {
+				continue
+			}
+			saveDCs[flagValues[0]] = dc
+		}
+	}
+
+	spellFlags := spellbook.SpellFlags{
+		CastingLevel:    castingLevel,
+		AttackModifiers: attackModifiers,
+		EffectModifiers: effectModifiers,
+		SaveDCs:         saveDCs,
+	}
+
+	var targets []spellbook.SpellTarget
+
+	for _, targetArgument := range params[1:] {
+		c, ok := cfg.battler.GetCombatant(targetArgument.text)
+		if !ok {
+			continue
+		}
+
+		var doAtks []spellbook.DoEffect
+		var doSavs []spellbook.DoEffect
+		var doUnavoids []spellbook.DoEffect
+
+		for flagName, flagValues := range targetArgument.flags {
+			if len(flagValues) < 2 {
+				continue
+			}
+			var id int
+			_, err := fmt.Sscanf(flagValues[0], "%d", &id)
+			if err != nil {
+				continue
+			}
+
+			var reps int
+			_, err = fmt.Sscanf(flagValues[1], "%d", &reps)
+			if err != nil {
+				continue
+			}
+
+			advPresent := false
+			disPresent := false
+			for _, value := range flagValues {
+				if value == "adv" {
+					advPresent = true
+				}
+
+				if value == "dis" {
+					disPresent = true
+				}
+			}
+
+			effectFlags := spellbook.EffectFlags{
+				WithAdvantage:    advPresent,
+				WithDisadvantage: disPresent,
+			}
+
+			switch flagName {
+			case "doatk":
+				doAtks = append(
+					doAtks,
+					spellbook.DoEffect{
+						EffectID:    id,
+						Repetitions: reps,
+						Flags:       effectFlags,
+					},
+				)
+			case "dosav":
+				doSavs = append(
+					doSavs,
+					spellbook.DoEffect{
+						EffectID:    id,
+						Repetitions: reps,
+						Flags:       effectFlags,
+					},
+				)
+			case "do":
+				doUnavoids = append(
+					doUnavoids,
+					spellbook.DoEffect{
+						EffectID:    id,
+						Repetitions: reps,
+						Flags:       effectFlags,
+					},
+				)
+			}
+		}
+
+		targetFlags := spellbook.TargetFlags{
+			DoAttacks:      doAtks,
+			DoSaves:        doSavs,
+			DoUnavoidables: doUnavoids,
+		}
+
+		targets = append(
+			targets,
+			spellbook.SpellTarget{
+				Target: c,
+				Flags:  targetFlags,
+			},
+		)
+	}
+
+	spell.Cast(targets, spellFlags)
 
 	return nil
 }

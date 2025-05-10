@@ -1,0 +1,111 @@
+{
+    "name": "fireball",
+    "description": "fireball is the best spell in the game.\nfireball is the only spell in the game.\nfireball is the best thing in the game.\nfireball is the only thing in the game.\nfireball.",
+    "base_level": 3,
+    "attacks": [
+        {
+            "name": "fireball to the face",
+            "modifier_key": "am1",
+            "conditional_saves": [
+                {
+                    "half_effect_on_success": false,
+                    "name": "fireball to the face",
+                    "ability": "dex",
+                    "dc_key": "dc1",
+                    "conditional_attacks": [
+                        {
+                            "name": "fireball 2, fiery boogaloo",
+                            "modifier_key": "am1",
+                            "effects": [
+                                {
+                                    "modifier_key": "em1",
+                                    "dice_expression": "8d6",
+                                    "effect_type": "fire",
+                                    "upcast": {
+                                        "max_upcast": 6,
+                                        "levels_per_upcast": 1,
+                                        "dice_expression": "1d6"
+                                    }
+                                }
+                            ]
+                        }
+                    ],
+                    "effects": [
+                        {
+                            "modifier_key": "em1",
+                            "dice_expression": "8d6",
+                            "effect_type": "fire",
+                            "upcast": {
+                                "max_upcast": 6,
+                                "levels_per_upcast": 1,
+                                "dice_expression": "1d6"
+                            }
+                        }
+                    ]
+                }
+            ],
+            "effects": [
+                {
+                    "modifier_key": "em1",
+                    "dice_expression": "8d6",
+                    "effect_type": "fire",
+                    "upcast": {
+                        "max_upcast": 6,
+                        "levels_per_upcast": 1,
+                        "dice_expression": "1d6"
+                    }
+                }
+            ]
+        }
+    ],
+    "saves": [
+        {
+            "half_effect_on_success": true,
+            "name": "fireball",
+            "ability": "dex",
+            "dc_key": "dc1",
+            "conditional_attacks": [
+                {
+                    "name": "fireball 2, fiery boogaloo",
+                    "modifier_key": "am1",
+                    "effects": [
+                        {
+                            "modifier_key": "em1",
+                            "dice_expression": "8d6",
+                            "effect_type": "fire",
+                            "upcast": {
+                                "max_upcast": 6,
+                                "levels_per_upcast": 1,
+                                "dice_expression": "1d6"
+                            }
+                        }
+                    ]
+                }
+            ],
+            "effects": [
+                {
+                    "modifier_key": "em1",
+                    "dice_expression": "8d6",
+                    "effect_type": "fire",
+                    "upcast": {
+                        "max_upcast": 6,
+                        "levels_per_upcast": 1,
+                        "dice_expression": "1d6"
+                    }
+                }
+            ]
+        }
+    ],
+    "unavoidable_effects": [
+        {
+            "modifier_key": "em1",
+            "dice_expression": "1d1",
+            "effect_type": "fire",
+            "upcast": {
+                "max_upcast": 6,
+                "levels_per_upcast": 1,
+                "dice_expression": "1d1"
+            }
+        }
+    ]
+}

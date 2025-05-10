@@ -55,42 +55,61 @@ type Combatant struct {
 	} `json:"statblock"`
 }
 
-func (c Combatant) TakeDMG(dmg int, dmgType string) {
+type EffectReport struct {
+	WasImmune     bool
+	WasResistant  bool
+	WasVulnerable bool
+	WasAtZero     bool
+	DroppedToZero bool
+	BackAboveZero bool
+	TrueEffect    int
+}
+
+func (c Combatant) TakeDMG(dmg int, dmgType string) EffectReport {
+	report := EffectReport{}
+
 	if c.StatBlock.HP["current"] <= 0 {
 		c.StatBlock.HP["current"] = 0
-		fmt.Printf("%s was already at 0 hit points!\n", c.StatBlock.Name)
-		return
+		report.WasAtZero = true
 	}
 
 	if slices.Contains(c.StatBlock.Immunities, dmgType) {
-		fmt.Printf("%s is immune to %s!\n", c.StatBlock.Name, dmgType)
-		return
+		dmg *= 0
+		report.WasImmune = true
 	}
 	if slices.Contains(c.StatBlock.Vulnerabilities, dmgType) {
 		dmg *= 2
-		fmt.Printf("%s is vulnerable to %s!\n", c.StatBlock.Name, dmgType)
+		report.WasVulnerable = true
 	}
 	if slices.Contains(c.StatBlock.Resistances, dmgType) {
 		dmg /= 2
-		fmt.Printf("%s is resistant to %s!\n", c.StatBlock.Name, dmgType)
+		report.WasResistant = true
 	}
 
 	c.StatBlock.HP["current"] -= dmg
 	if c.StatBlock.HP["current"] <= 0 {
 		c.StatBlock.HP["current"] = 0
-		fmt.Printf("%s has dropped to 0 hit points!\n", c.StatBlock.Name)
-		return
+		report.DroppedToZero = true
 	}
+
+	report.TrueEffect = dmg
+
+	return report
 }
 
-func (c Combatant) HealHP(hp int) {
+func (c Combatant) HealHP(hp int) EffectReport {
+	report := EffectReport{TrueEffect: hp}
+
 	if c.StatBlock.HP["current"] == 0 && hp > 0 {
-		fmt.Printf("%s is back above 0 hit points!\n", c.StatBlock.Name)
+		report.BackAboveZero = true
 	}
+
 	c.StatBlock.HP["current"] += hp
 	if c.StatBlock.HP["current"] > c.StatBlock.HP["max"] {
 		c.StatBlock.HP["current"] = c.StatBlock.HP["max"]
 	}
+
+	return report
 }
 
 func (c Combatant) Hits(attackRoll int) bool {
