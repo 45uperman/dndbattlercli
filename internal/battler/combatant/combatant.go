@@ -35,34 +35,11 @@ type Combatant struct {
 			Speaks      []string
 			Understands []string
 		} `json:"languages"`
-		Traits  map[string]string `json:"traits"`
-		Actions map[string]struct {
-			AttackRoll struct {
-				Present  bool `json:"present"`
-				Modifier int  `json:"modifier"`
-			} `json:"attack_roll"`
-			SavingThrow struct {
-				Present bool   `json:"present"`
-				Ability string `json:"ability"`
-				DC      int    `json:"dc"`
-			} `json:"saving_throw"`
-			Effects map[string]struct {
-				Roll string `json:"roll"`
-				Type string `json:"type"`
-			} `json:"effects"`
-			Description string `json:"description"`
-		} `json:"actions"`
+		Traits       map[string]string `json:"traits"`
+		Actions      map[string]Action `json:"actions"`
+		BonusActions map[string]Action `json:"bonus_actions"`
+		Reactions    map[string]Action `json:"reactions"`
 	} `json:"statblock"`
-}
-
-type EffectReport struct {
-	WasImmune     bool
-	WasResistant  bool
-	WasVulnerable bool
-	WasAtZero     bool
-	DroppedToZero bool
-	BackAboveZero bool
-	TrueEffect    int
 }
 
 func (c Combatant) TakeDMG(dmg int, dmgType string) EffectReport {
@@ -120,21 +97,30 @@ func (c Combatant) Hits(attackRoll int) bool {
 	}
 }
 
-func (c Combatant) DoAction(actionName string) error {
-	action, ok := c.StatBlock.Actions[actionName]
+func (c Combatant) DoAction(actionName, actionType string) error {
+	var action Action
+	var ok bool
+	switch actionType {
+	case "action":
+		action, ok = c.StatBlock.Actions[actionName]
+	case "bonus action":
+		action, ok = c.StatBlock.BonusActions[actionName]
+	case "reaction":
+		action, ok = c.StatBlock.Reactions[actionName]
+	}
+
 	if !ok {
 		return fmt.Errorf("action not found: %s", actionName)
 	}
+
 	sep := "-------------------------------------------------------"
 	fmt.Println(sep)
 
 	if action.AttackRoll.Present {
-		d, err := dice.ReadDiceExpression(fmt.Sprintf("d20+%d", action.AttackRoll.Modifier))
-		if err != nil {
-			return err
-		}
-
-		fmt.Printf("Attack roll:\n - %d to hit\n", d.Roll(false, false))
+		fmt.Printf(
+			"Attack roll:\n - %d to hit\n",
+			dice.D20.Roll(false, false)+action.AttackRoll.Modifier,
+		)
 	}
 
 	if action.SavingThrow.Present {
@@ -338,8 +324,65 @@ func (c Combatant) Display() {
 		fmt.Printf("\n")
 	}
 
+	if len(c.StatBlock.BonusActions) != 0 {
+		fmt.Println(sep)
+
+		fmt.Println("Bonus Actions")
+
+		for name, action := range c.StatBlock.BonusActions {
+			fmt.Printf(
+				"\n%s. %s\n",
+				capitalize(strings.Replace(name, "_", " ", -1)),
+				action.Description,
+			)
+		}
+		fmt.Printf("\n")
+	}
+
+	if len(c.StatBlock.Reactions) != 0 {
+		fmt.Println(sep)
+
+		fmt.Println("Reactions")
+
+		for name, action := range c.StatBlock.Reactions {
+			fmt.Printf(
+				"\n%s. %s\n",
+				capitalize(strings.Replace(name, "_", " ", -1)),
+				action.Description,
+			)
+		}
+		fmt.Printf("\n")
+	}
+
 	fmt.Println("=======================================================")
 
+}
+
+type Action struct {
+	AttackRoll struct {
+		Present  bool `json:"present"`
+		Modifier int  `json:"modifier"`
+	} `json:"attack_roll"`
+	SavingThrow struct {
+		Present bool   `json:"present"`
+		Ability string `json:"ability"`
+		DC      int    `json:"dc"`
+	} `json:"saving_throw"`
+	Effects map[string]struct {
+		Roll string `json:"roll"`
+		Type string `json:"type"`
+	} `json:"effects"`
+	Description string `json:"description"`
+}
+
+type EffectReport struct {
+	WasImmune     bool
+	WasResistant  bool
+	WasVulnerable bool
+	WasAtZero     bool
+	DroppedToZero bool
+	BackAboveZero bool
+	TrueEffect    int
 }
 
 func prettyPrintListItem(item, indent string, i *int) {

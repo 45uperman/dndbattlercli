@@ -89,8 +89,9 @@ func ReadDiceExpression(expr string) (Dice, error) {
 				}
 				amount = 1
 			}
+		} else {
+			modifier *= -1
 		}
-		modifier *= -1
 	}
 
 	if amount < 0 || denomination < 0 {

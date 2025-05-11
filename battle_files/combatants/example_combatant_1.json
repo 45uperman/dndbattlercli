@@ -78,6 +78,8 @@
         },
         "description": "Melee Weapon Attack: +5 to hit, reach 5 ft.,\none target. Hit: 7 (1d4 + 5) bug damage.\nTargets holding an item make a DC 15 Strength saving\nthrow. On a failed save, the caterpie eats their item."
       }
-    }
+    },
+    "bonus_actions": null,
+    "reactions": null
   }
 }

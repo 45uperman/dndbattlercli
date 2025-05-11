@@ -15,7 +15,9 @@ import (
 
 type cliCommand struct {
 	name        string
+	example     string
 	description string
+	flags       map[string]string
 	callback    func(*config, []argument) error
 }
 
@@ -27,6 +29,7 @@ type argument struct {
 type config struct {
 	battler           battler.Battler
 	supportedCommands map[string]cliCommand
+	helpPrintList     []string
 	isRunning         bool
 	selection         *combatant.Combatant
 }
@@ -38,64 +41,105 @@ func init() {
 		supportedCommands: map[string]cliCommand{
 			"exit": {
 				name:        "exit",
+				example:     "exit",
 				description: "Exit the program",
 				callback:    commandExit,
 			},
 			"help": {
 				name:        "help",
+				example:     "help",
 				description: "Displays a help message",
 				callback:    commandHelp,
 			},
 			"names": {
 				name:        "names",
-				description: "Displays the name of each combatant stored in the battler",
+				example:     "names",
+				description: "Displays the name of each combatant and spell stored in the battler",
 				callback:    commandNames,
 			},
 			"select": {
 				name:        "select",
+				example:     "select blabby the blastoise",
 				description: "Selects and displays the provided combatant",
 				callback:    commandSelect,
 			},
 			"dmg": {
 				name:        "dmg",
-				description: "Deals the provided amount of damage to the selected combatant",
+				example:     "dmg 28, fire",
+				description: "Deals the provided amount of damage of the provided type to the selected combatant",
 				callback:    commandDmg,
 			},
 			"heal": {
 				name:        "heal",
+				example:     "heal 7",
 				description: "Heals the selected combatant by the provided amount of hp",
 				callback:    commandHeal,
 			},
 			"attack": {
 				name:        "attack",
+				example:     "attack 18",
 				description: "Compares the provided attack roll to the selected combatant's AC and displays the result",
 				callback:    commandAttack,
 			},
 			"save": {
 				name:        "save",
+				example:     "save 18, dex",
 				description: "Makes a saving throw using the selected comatant's saving throw modifier of the provided ability\n      against the provided DC and displays the result",
 				callback:    commandSave,
 			},
 			"roll": {
 				name:        "roll",
-				description: "Rolls the provided amount of dice of the provided denomination and displays the total",
-				callback:    commandRoll,
+				example:     "roll 2d4+2",
+				description: "Rolls the provided dice expression (such as d20, 8d6, or 2d4+2) and displays the total",
+				flags: map[string]string{
+					"--adv": "tells the battler to roll with advantage",
+					"--dis": "tells the battler to roll with disadvantage",
+				},
+				callback: commandRoll,
 			},
 			"view": {
 				name:        "view",
+				example:     "view",
 				description: "Displays the selected combatant",
 				callback:    commandView,
 			},
 			"action": {
 				name:        "action",
+				example:     "action tail whip --bonus",
 				description: "Takes the provided action of the selected combatant",
-				callback:    commandAction,
+				flags: map[string]string{
+					"--bonus": "tells the battler this is a bonus action",
+					"--re":    "tells the battler this is a reaction",
+				},
+				callback: commandAction,
 			},
 			"cast": {
 				name:        "cast",
+				example:     "cast fireball --dc dc1 30 --am am1 19 --em em1 10, blabby the blastoise --dosav 1 1 dis --doatk 1 2 adv --do 1 3",
 				description: "Casts the provided spell on the provided target(s)",
-				callback:    commandCast,
+				flags: map[string]string{
+					"--dc":    "tells the battler that the following DC key (dc1 in the example) should be set to the following\n   value (30 in the example)",
+					"--am":    "this flag functions identically to the dc flag, but is used for attack modifiers instead\n   (+19 to hit in the example)",
+					"--em":    "this flag functions identically to the dc flag, but is used for effect modifiers instead\n   (+10 to certain damage rolls in the example)",
+					"--dosav": "tells the battler to force saving throw #X on the target Y times with advantage,\n   disadvantage, both (which causes them to cancel out) or neither. X is always the first field and\n   Y is always the second",
+					"--doatk": "this flag functions identically to the dosav flag, but for attack rolls instead\n   (x=1 and y=2 in the example)",
+					"--do":    "this flag functions identically to the dosav flag, but for unavoidable effects instead\n   (x=1 and y=3 in the example)",
+				},
+				callback: commandCast,
 			},
+		},
+		helpPrintList: []string{
+			"help",
+			"exit",
+			"roll",
+			"names",
+			"select",
+			"view",
+			"dmg",
+			"heal",
+			"action",
+			"save",
+			"cast",
 		},
 		isRunning: true,
 	}
@@ -216,9 +260,21 @@ func commandExit(cfg *config, params []argument) error {
 }
 
 func commandHelp(cfg *config, params []argument) error {
-	fmt.Printf("Commands:\n\n")
-	for _, command := range cfg.supportedCommands {
-		fmt.Printf("%s: %s\n\n", command.name, command.description)
+	sep := "------------------------------------------------------------------------------------------------------------------------------"
+	fmt.Printf("Syntax:\n%s\n", sep)
+	fmt.Println("First write the name of your command, then any arguments and their respective flags and fields as follows:")
+	fmt.Printf("'<command_name> <arg1> --<arg1_flag1> <arg1_flag1_field1>, <arg2> --<arg2_flag1> <arg2_flag1_field1>...'\n%s\n", sep)
+	fmt.Printf("Commands:\n%s\n", sep)
+	for _, commandName := range cfg.helpPrintList {
+		command := cfg.supportedCommands[commandName]
+		fmt.Printf("%s: %s\n\nexample: '%s'\n", command.name, command.description, command.example)
+		if len(command.flags) != 0 {
+			fmt.Printf("\nflags:\n")
+			for flagName, flagDescription := range command.flags {
+				fmt.Printf("\n%s\n\n   %s\n", flagName, flagDescription)
+			}
+		}
+		fmt.Println(sep)
 	}
 	return nil
 }
@@ -375,8 +431,22 @@ func commandAction(cfg *config, params []argument) error {
 		return fmt.Errorf("action takes the name of an action as it's arguments - try checking the statblock of the selected combatant\nwith the view command")
 	}
 
+	actionType := "action"
+	for flagName, _ := range params[0].flags {
+		switch flagName {
+		case "bonus":
+			actionType = "bonus action"
+		case "re":
+			actionType = "reaction"
+		}
+
+		if actionType != "action" {
+			break
+		}
+	}
+
 	actionName := strings.ReplaceAll(params[0].text, " ", "_")
-	err := cfg.selection.DoAction(actionName)
+	err := cfg.selection.DoAction(actionName, actionType)
 	if err != nil {
 		return err
 	}

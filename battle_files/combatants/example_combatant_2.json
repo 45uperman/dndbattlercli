@@ -79,6 +79,41 @@
         },
         "description": "Ranged Weapon Attack: +5 to hit,\nrange 60/120 ft., one target.\nHit: 12 (2d6 + 5) water damage."
       }
+    },
+    "bonus_actions": {
+      "tail_whip": {
+        "attack_roll": {
+          "present": true,
+          "modifier": 5
+        },
+        "saving_throw": {
+          "present": false,
+          "ability": "",
+          "dc": 0
+        },
+        "effects": null,
+        "description": "Melee Weapon Attack: +5 to hit,\nrange 10 ft., all creatures within range.\nOn a hit, weapon attacks against the creature\nhave advantage as long as the creature\nremains within 10 feet of blastoise."
+      }
+    },
+    "reactions": {
+      "counter": {
+        "attack_roll": {
+          "present": false,
+          "modifier": 0
+        },
+        "saving_throw": {
+          "present": false,
+          "ability": "",
+          "dc": 0
+        },
+        "effects": {
+          "damage": {
+            "roll": "2d10",
+            "type": "fighting"
+          }
+        },
+        "description": "When a creature blastoise can see within\n5 feet of it deals damage to blastoise,\nblastoise deals 16 (2d10 + 5) fighting damage to\nthe creature."
+      }
     }
   }
 }
